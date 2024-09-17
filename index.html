@@ -48,7 +48,9 @@
                 </select>
             </div>
             <div id="Attacker-ships"></div>
-            <button onclick="addShip('Attacker')">Add Ship</button>
+            <button onclick="addShip('Attacker')">Add</button>
+            <button onclick="duplicateShip('Attacker')">Duplicate</button>
+            <button onclick="deleteShip('Attacker')">Delete</button>
         </div>
         <div class="fleet" id="Defender">
             <h2>Defender's Fleet</h2>
@@ -64,7 +66,9 @@
                 </select>
             </div>
             <div id="Defender-ships"></div>
-            <button onclick="addShip('Defender')">Add Ship</button>
+            <button onclick="addShip('Defender')">Add</button>
+            <button onclick="duplicateShip('Defender')">Duplicate</button>
+            <button onclick="deleteShip('Attacker')">Delete</button>
         </div>
     </div>
 
@@ -106,6 +110,24 @@
                 shipCount[fleetId]++;
             } else {
                 alert("You can only add up to 20 ships per fleet.");
+            }
+        }
+
+        function duplicateShip(fleetId) {
+            const fleetDiv = document.getElementById(`${fleetId}-ships`);
+            const shipDivs = fleetDiv.querySelectorAll('div');
+            const lastShipDiv = shipDivs[shipDivs.length - 1];
+            const shipForm = lastShipDiv.outerHTML;
+            fleetDiv.insertAdjacentHTML('beforeend', shipForm);
+            shipCount[fleetId]++;
+        }
+
+        function deleteShip(fleetId) {
+            if (shipCount[fleetId] > 0) {
+                const fleetDiv = document.getElementById(`${fleetId}-ships`);
+                const shipDivs = fleetDiv.querySelectorAll('div');
+                fleetDiv.removeChild(shipDivs[shipDivs.length - 1]);
+                shipCount[fleetId]--;
             }
         }
 
