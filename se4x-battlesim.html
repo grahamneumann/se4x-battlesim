@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Empires 4X Battle Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .fleet-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .fleet {
+            border: 1px solid #000;
+            padding: 10px;
+            width: 45%;
+        }
+        .log {
+            max-height: 300px;
+            overflow-y: scroll;
+            background-color: #f1f1f1;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Space Empires 4X Battle Simulator</h1>
+
+    <div class="fleet-container">
+        <div class="fleet" id="Attacker">
+            <h2>Attacker's Fleet</h2>
+            <div class="doctrine">
+                <label for="Attacker-doctrine">Doctrine: </label>
+                Most damaged target and after Highest 
+                <select id="Attacker-doctrine">
+                    <option value="class">Class</option>
+                    <option value="attack">Attack</option>
+                    <option value="defence">Defence</option>
+                    <option value="tactics-">Tactics</option>
+                    <option value="hull">Hull Size</option>
+                </select>
+            </div>
+            <div id="Attacker-ships"></div>
+            <button onclick="addShip('Attacker')">Add Ship</button>
+        </div>
+        <div class="fleet" id="Defender">
+            <h2>Defender's Fleet</h2>
+            <div class="doctrine">
+                <label for="Defender-doctrine">Doctrine: </label>
+                Most damaged target and after Highest 
+                <select id="Defender-doctrine">
+                    <option value="class">Class</option>
+                    <option value="attack">Attack</option>
+                    <option value="defence">Defence</option>
+                    <option value="tactics-">Tactics</option>
+                    <option value="hull">Hull Size</option>
+                </select>
+            </div>
+            <div id="Defender-ships"></div>
+            <button onclick="addShip('Defender')">Add Ship</button>
+        </div>
+    </div>
+
+    <div>
+        <label for="numSims">Number of Simulations: </label>
+        <input type="number" id="numSims" value="1" min="1">
+        <button onclick="runSimulations()">Run Simulations</button>
+    </div>
+
+    <h2>Battle Log</h2>
+    <div class="log" id="log"></div>
+
+    <h2>Results</h2>
+    <div id="results"></div>
+
+    <script>
+        let shipCount = { Attacker: 0, Defender: 0 };
+
+        function addShip(fleetId) {
+            if (shipCount[fleetId] < 20) {
+                const shipForm = `
+                    <div>
+                        <label>Class: </label>
+                        <select class="class">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                        </select>
+                        <label>Attack Strength: </label><input type="number" class="attack" value="4" min="1" max="7">
+                        <label>Defense Strength: </label><input type="number" class="defense" value="0" min="0" max="5">
+                        <label>Tactics: </label><input type="number" class="tactics" value="0" min="0" max="3">
+                        <label>Hull Size: </label><input type="number" class="hull" value="1" min="1" max="3">
+                    </div>
+                `;
+                document.getElementById(`${fleetId}-ships`).insertAdjacentHTML('beforeend', shipForm);
+                shipCount[fleetId]++;
+            } else {
+                alert("You can only add up to 20 ships per fleet.");
+            }
+        }
+
+        function getShips(fleetId) {
+            const ships = [];
+            const fleetDiv = document.getElementById(`${fleetId}-ships`);
+            const shipDivs = fleetDiv.querySelectorAll('div');
+            var shipNum = 0;
+            shipDivs.forEach(shipDiv => {
+                ships.push({
+                    shipId: fleetId + '-' + shipNum,
+                    class: shipDiv.querySelector('.class').value,
+                    attack: parseInt(shipDiv.querySelector('.attack').value),
+                    defense: parseInt(shipDiv.querySelector('.defense').value),
+                    tactics: parseInt(shipDiv.querySelector('.tactics').value),
+                    hull: parseInt(shipDiv.querySelector('.hull').value),
+                    fleet: fleetId,
+                    alive: true,
+                });
+                shipNum++;
+            });
+            return ships;
+        }
+
+        function selectTarget(ships, doctrine) {
+            let target = ships[0];
+            if (doctrine === 'class') {
+                ships.forEach(ship => {
+                    if (ship.class < target.class) {
+                        target = ship;
+                    }
+                });
+            } else if (doctrine === 'attack') {
+                ships.forEach(ship => {
+                    if (ship.attack > target.attack) {
+                        target = ship;
+                    }
+                });
+            } else if (doctrine === 'defence') {
+                ships.forEach(ship => {
+                    if (ship.defense > target.defense) {
+                        target = ship;
+                    }
+                });
+            } else if (doctrine === 'tactics') {
+                ships.forEach(ship => {
+                    if (ship.tactics > target.tactics) {
+                        target = ship;
+                    }
+                });
+            } else if (doctrine === 'hull') {
+                ships.forEach(ship => {
+                    if (ship.hull > target.hull) {
+                        target = ship;
+                    }
+                });
+            }
+            return target;
+        }
+
+        function simulateBattle(attacker, defender) {
+            const log = [];
+            let round = 1;
+            const attackerDoctrine = document.getElementById('Attacker-doctrine').value;
+            const defenderDoctrine = document.getElementById('Defender-doctrine').value;
+            const destroyedShips = [];
+
+            while (attacker.length > 0 && defender.length > 0) {
+                log.push(`Round ${round}`);
+                const allShips = [...attacker, ...defender];
+
+                // Firing order: Class -> Tactics -> Defender
+                allShips.sort((a, b) => {
+                    if (a.class === b.class) {
+                        if (a.tactics === b.tactics) {
+                            return a.fleet === 'Defender' ? -1 : 1;
+                        }
+                        return b.tactics - a.tactics;
+                    }
+                    return a.class.localeCompare(b.class);
+                });
+
+                for (let ship of allShips) {
+
+                    if (destroyedShips.includes(ship.shipId)) {
+                        continue;
+                    }
+
+                    const attackingFleet = ship.fleet === 'Attacker' ? attacker : defender;
+                    const doctrine = ship.fleet === 'Attacker' ? attackerDoctrine : defenderDoctrine;    
+                    const defendingFleet = ship.fleet === 'Attacker' ? defender : attacker;
+
+                    if (defendingFleet.length > 0) {
+                                                
+                        let target = selectTarget(defendingFleet, doctrine);
+                        let roll = Math.ceil(Math.random() * 10);
+                        let hitNumber = ship.attack - target.defense;
+
+                        log.push(`${ship.fleet}'s ${ship.class} attacks ${target.fleet}'s ${target.class}: Rolled ${roll}, Needs ${hitNumber} to hit`);
+                        if (roll <= hitNumber) {
+                            log.push(`Hit!`);
+                            target.hull--;
+                            if (target.hull <= 0) {
+                                log.push(`${target.fleet}'s ${target.class} is destroyed!`);
+                                defendingFleet.shift();
+                                destroyedShips.push(target.shipId);
+                            }
+                        } else {
+                            log.push(`Miss!`);
+                        }
+                    }
+                }
+
+                round++;
+            }
+
+            const winner = attacker.length > 0 ? 'Attacker' : 'Defender';
+            log.push(`${winner} wins the battle!`);
+            return { winner, log };
+        }
+
+        function runSimulations() {
+            const numSims = parseInt(document.getElementById('numSims').value);
+            const attackerShips = getShips('Attacker');
+            const defenderShips = getShips('Defender');
+            const results = { 'Attacker': 0, 'Defender': 0 };
+            let battleLog = "";
+
+            for (let i = 0; i < numSims; i++) {
+                const attackerCopy = JSON.parse(JSON.stringify(attackerShips));
+                const defendercopy = JSON.parse(JSON.stringify(defenderShips));
+                const result = simulateBattle(attackerCopy, defendercopy);
+                results[result.winner]++;
+                battleLog += result.log.join('<br>') + '<br><br>';
+            }
+
+            document.getElementById('log').innerHTML = battleLog;
+            document.getElementById('results').innerHTML = `
+                Attacker Wins: ${results['Attacker']}<br>
+                Defender Wins: ${results['Defender']}
+            `;
+        }
+    </script>
+</body>
+</html>
