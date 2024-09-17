@@ -87,6 +87,7 @@
             if (shipCount[fleetId] < 20) {
                 const shipForm = `
                     <div>
+                        <label><b>Ship ${shipCount[fleetId] + 1}:</b></label>
                         <label>Class: </label>
                         <select class="class">
                             <option value="A">A</option>
@@ -112,7 +113,7 @@
             const ships = [];
             const fleetDiv = document.getElementById(`${fleetId}-ships`);
             const shipDivs = fleetDiv.querySelectorAll('div');
-            var shipNum = 0;
+            var shipNum = 1;
             shipDivs.forEach(shipDiv => {
                 ships.push({
                     shipId: fleetId + '-' + shipNum,
@@ -201,14 +202,15 @@
                                                 
                         let target = selectTarget(defendingFleet, doctrine);
                         let roll = Math.ceil(Math.random() * 10);
-                        let hitNumber = ship.attack - target.defense;
+                        let largeFleetBonus = Math.floor(attackingFleet.length / 2) >= defendingFleet.length ? 1 : 0;
+                        let hitNumber = ship.attack + largeFleetBonus - target.defense;
 
-                        log.push(`${ship.fleet}'s ${ship.class} attacks ${target.fleet}'s ${target.class}: Rolled ${roll}, Needs ${hitNumber} to hit`);
+                        log.push(`${ship.shipId} attacks ${target.shipId}: Rolled ${roll}, Needs ${hitNumber} to hit${largeFleetBonus ? ' (large fleet bonus)' : ''}`); 
                         if (roll <= hitNumber) {
                             log.push(`Hit!`);
                             target.hull--;
                             if (target.hull <= 0) {
-                                log.push(`${target.fleet}'s ${target.class} is destroyed!`);
+                                log.push(`${target.shipId} is destroyed!`);
                                 defendingFleet.shift();
                                 destroyedShips.push(target.shipId);
                             }
